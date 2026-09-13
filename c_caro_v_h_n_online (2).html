@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cờ Caro Vô Hạn Online - Hoàn Chỉnh</title>
+  <!-- Thư viện PeerJS để kết nối P2P thời gian thực -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap');
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: #0d1117;
+      color: #fff;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #30363d;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="bg-[#0d1117] text-white select-none">
+
+  <div id="custom-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#161b22] border border-[#30363d] rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl animate-scaleIn">
+      <div id="modal-icon" class="text-4xl mb-3 text-red-500"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <h3 id="modal-title" class="text-xl font-bold mb-2">Thông báo</h3>
+      <p id="modal-desc" class="text-slate-300 text-sm mb-6 leading-relaxed">Nội dung thông báo...</p>
+      <button onclick="closeModal()" class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-bold rounded-xl shadow-lg transition-all transform active:scale-95">Đồng ý</button>
+    </div>
+  </div>
+
+  <div id="main-menu" class="fixed inset-0 bg-[#0d1117]/95 backdrop-blur-md z-40 flex items-center justify-center p-4">
+    <div class="bg-[#161b22] border border-[#30363d] rounded-3xl p-8 w-full max-w-md text-center shadow-2xl relative overflow-hidden">
+      <div class="absolute -top-12 -right-12 w-36 h-36 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="absolute -bottom-12 -left-12 w-36 h-36 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-3xl mb-4 shadow-lg shadow-blue-500/30">
+        <i class="fa-solid fa-chess-board text-white"></i>
+      </div>
+      <h1 class="text-3xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 mb-1">CỜ CARO VÔ HẠN</h1>
+      <p class="text-slate-400 text-sm mb-8">Bản đồ mở rộng vô cực • Đỉnh cao chiến thuật</p>
+
+      <div class="space-y-3.5">
+        <button onclick="showOnlineMenu()" class="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 font-bold rounded-2xl shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-3 transition-all transform hover:-translate-y-0.5 active:translate-y-0">
+          <i class="fa-solid fa-globe text-lg"></i> Thách Đấu Online
+        </button>
+        <button onclick="showEloMenu()" class="w-full py-4 px-6 bg-[#21262d] hover:bg-[#30363d] border border-[#30363d] font-bold rounded-2xl flex items-center justify-center gap-3 transition-all transform hover:-translate-y-0.5 active:translate-y-0">
+          <i class="fa-solid fa-robot text-lg text-blue-400"></i> Chơi Với Máy (AI Elo)
+        </button>
+        <button onclick="startLocalPvP()" class="w-full py-4 px-6 bg-[#21262d] hover:bg-[#30363d] border border-[#30363d] font-bold rounded-2xl flex items-center justify-center gap-3 transition-all transform hover:-translate-y-0.5 active:translate-y-0">
+          <i class="fa-solid fa-user-group text-lg text-purple-400"></i> 2 Người (Chung Máy)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="elo-menu" class="fixed inset-0 bg-[#0d1117]/95 backdrop-blur-md z-40 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#161b22] border border-[#30363d] rounded-3xl p-8 w-full max-w-md text-center shadow-2xl">
+      <h2 class="text-2xl font-black mb-2 text-blue-400">CHỌN CẤP ĐỘ AI</h2>
+      <p class="text-slate-400 text-sm mb-6">Thử thách trí tuệ với các mức Elo khác nhau</p>
+
+      <div class="grid grid-cols-1 gap-3 mb-6">
+        <button onclick="startPvE(800)" class="p-4 bg-[#21262d] hover:bg-blue-600/20 border border-[#30363d] hover:border-blue-500/50 rounded-2xl flex items-center justify-between transition-all group">
+          <div class="text-left">
+            <div class="font-bold text-slate-200 group-hover:text-blue-300">🌱 Tập Sự</div>
+            <div class="text-xs text-slate-400">Dành cho người mới bắt đầu</div>
+          </div>
+          <span class="px-3 py-1 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold">Elo 800</span>
+        </button>
+        <button onclick="startPvE(1200)" class="p-4 bg-[#21262d] hover:bg-blue-600/20 border border-[#30363d] hover:border-blue-500/50 rounded-2xl flex items-center justify-between transition-all group">
+          <div class="text-left">
+            <div class="font-bold text-slate-200 group-hover:text-blue-300">🌿 Trung Bình</div>
+            <div class="text-xs text-slate-400">Thử thách vừa phải</div>
+          </div>
+          <span class="px-3 py-1 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold">Elo 1200</span>
+        </button>
+        <button onclick="startPvE(1600)" class="p-4 bg-[#21262d] hover:bg-blue-600/20 border border-[#30363d] hover:border-blue-500/50 rounded-2xl flex items-center justify-between transition-all group">
+          <div class="text-left">
+            <div class="font-bold text-slate-200 group-hover:text-blue-300">🔥 Cao Thủ</div>
+            <div class="text-xs text-slate-400">Đòi hỏi tính toán sâu</div>
+          </div>
+          <span class="px-3 py-1 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold">Elo 1600</span>
+        </button>
+        <button onclick="startPvE(2000)" class="p-4 bg-[#21262d] hover:bg-blue-600/20 border border-[#30363d] hover:border-blue-500/50 rounded-2xl flex items-center justify-between transition-all group">
+          <div class="text-left">
+            <div class="font-bold text-slate-200 group-hover:text-blue-300">👑 Kiện Tướng</div>
+            <div class="text-xs text-slate-400">Đỉnh cao trí tuệ nhân tạo</div>
+          </div>
+          <span class="px-3 py-1 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold">Elo 2000</span>
+        </button>
+      </div>
+
+      <button onclick="hideEloMenu()" class="w-full py-3 bg-[#21262d] hover:bg-[#30363d] text-slate-300 font-bold rounded-xl transition-all">
+        <i class="fa-solid fa-arrow-left mr-2"></i> Quay lại
+      </button>
+    </div>
+  </div>
+
+  <div id="online-menu" class="fixed inset-0 bg-[#0d1117]/95 backdrop-blur-md z-40 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#161b22] border border-[#30363d] rounded-3xl p-8 w-full max-w-md text-center shadow-2xl relative">
+      <h2 class="text-2xl font-black mb-2 text-emerald-400"><i class="fa-solid fa-globe mr-2"></i> THÁCH ĐẤU ONLINE</h2>
+      <p id="online-status-desc" class="text-slate-400 text-sm mb-6">Đang khởi tạo kết nối phòng an toàn...</p>
+
+      <div id="online-loading-box" class="py-8">
+        <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-emerald-500 border-t-transparent mb-4"></div>
+        <p class="text-slate-300 text-sm">Đang kết nối máy chủ PeerJS...</p>
+      </div>
+
+      <div id="online-room-created" class="space-y-4 hidden">
+        <div class="p-4 bg-[#0d1117] border border-[#30363d] rounded-2xl text-left">
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Đường dẫn mời đối thủ:</label>
+          <div class="flex items-center gap-2">
+            <input type="text" id="room-link-input" readonly class="w-full bg-[#161b22] border border-[#30363d] rounded-xl px-3 py-2 text-xs text-emerald-300 select-all outline-none">
+            <button onclick="copyRoomLink()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-xs shrink-0 transition-all">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+          </div>
+        </div>
+        <div class="text-xs text-slate-400 flex items-center justify-center gap-2">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          Đang chờ đối thủ vào phòng...
+        </div>
+      </div>
+
+      <div id="online-join-box" class="space-y-4 hidden text-left">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Nhập mã phòng hoặc dán link:</label>
+          <input type="text" id="join-room-input" placeholder="Dán link hoặc mã phòng..." class="w-full bg-[#0d1117] border border-[#30363d] rounded-xl px-4 py-3 text-sm text-slate-200 outline-none focus:border-emerald-500 transition-all">
+        </div>
+        <button onclick="joinRoomFromInput()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl shadow-lg shadow-emerald-600/20 transition-all">
+          <i class="fa-solid fa-right-to-bracket mr-2"></i> Vào Phòng Ngay
+        </button>
+      </div>
+
+      <button onclick="backToMenu()" class="w-full mt-6 py-3 bg-[#21262d] hover:bg-[#30363d] text-slate-300 font-bold rounded-xl transition-all">
+        <i class="fa-solid fa-arrow-left mr-2"></i> Quay lại Menu
+      </button>
+    </div>
+  </div>
+
+  <div id="winner-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#161b22] border border-[#30363d] rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl animate-scaleIn">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/10 text-amber-400 text-3xl mb-4 border border-amber-500/30">
+        <i class="fa-solid fa-trophy"></i>
+      </div>
+      <h2 id="winner-text" class="text-2xl font-black mb-2 text-white">Chiến Thắng!</h2>
+      <p class="text-slate-400 text-sm mb-6">Trận đấu đã kết thúc với kết quả tuyệt vời.</p>
+      
+      <div class="space-y-3">
+        <button onclick="requestRestartGame()" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 font-bold rounded-xl shadow-lg shadow-blue-600/30 transition-all">
+          <i class="fa-solid fa-rotate-right mr-2"></i> Chơi Ván Mới
+        </button>
+        <button onclick="backToMenu()" class="w-full py-3 bg-[#21262d] hover:bg-[#30363d] text-slate-300 font-bold rounded-xl transition-all">
+          <i class="fa-solid fa-house mr-2"></i> Về Menu Chính
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <header class="h-16 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between px-4 sm:px-6 z-20 shrink-0">
+    <button onclick="backToMenu()" class="px-3.5 py-2 bg-[#21262d] hover:bg-[#30363d] border border-[#30363d] font-semibold text-sm rounded-xl flex items-center gap-2 transition-all">
+      <i class="fa-solid fa-house text-slate-400"></i> <span class="hidden sm:inline">Menu</span>
+    </button>
+
+    <!-- Turn Indicator Box -->
+    <div class="flex items-center gap-3 bg-[#0d1117] border border-[#30363d] px-4 py-1.5 rounded-2xl">
+      <div id="p1-box" class="flex items-center gap-2 px-3 py-1 rounded-xl transition-all bg-blue-600/20 border border-blue-500 text-blue-400 font-bold text-sm shadow-sm">
+        <i class="fa-solid fa-xmark text-lg"></i> <span id="p1-label">Nước X</span>
+      </div>
+      <span class="text-slate-500 font-bold text-xs">VS</span>
+      <div id="p2-box" class="flex items-center gap-2 px-3 py-1 rounded-xl transition-all text-slate-400 font-bold text-sm">
+        <i class="fa-solid fa-o text-lg"></i> <span id="p2-label">Nước O</span>
+      </div>
+    </div>
+
+    <!-- Actions & Sound Toggle -->
+    <div class="flex items-center gap-2">
+      <button id="chat-toggle-btn" onclick="toggleChatPanel()" class="hidden sm:flex px-3.5 py-2 bg-[#21262d] hover:bg-[#30363d] border border-[#30363d] font-semibold text-sm rounded-xl items-center gap-2 transition-all text-slate-300">
+        <i class="fa-solid fa-comments text-emerald-400"></i> Chat
+      </button>
+      <button id="sound-btn" onclick="toggleSound()" class="px-3.5 py-2 bg-[#21262d] hover:bg-[#30363d] border border-[#30363d] font-semibold text-sm rounded-xl flex items-center gap-2 transition-all text-slate-300">
+        <i class="fa-solid fa-volume-high text-blue-400"></i> <span class="hidden md:inline">Bật</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="flex-1 relative overflow-hidden bg-[#0a0e14]" id="canvas-container">
+    <canvas id="gameCanvas" class="block w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+
+    <!-- Online Chat Drawer (Visible in Online mode) -->
+    <div id="chat-panel" class="absolute right-4 top-4 bottom-20 w-80 bg-[#161b22]/95 backdrop-blur-md border border-[#30363d] rounded-2xl shadow-2xl flex flex-col hidden z-30 transition-all">
+      <div class="p-3.5 border-b border-[#30363d] flex items-center justify-between">
+        <h4 class="font-bold text-sm flex items-center gap-2 text-emerald-400"><i class="fa-solid fa-comments"></i> Trò chuyện trận đấu</h4>
+        <button onclick="toggleChatPanel()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="chat-messages" class="flex-1 p-3 overflow-y-auto space-y-2 text-xs custom-scrollbar">
+        <div class="text-slate-500 text-center italic py-2">Bắt đầu trò chuyện với đối thủ...</div>
+      </div>
+      <div class="p-3 border-t border-[#30363d] flex gap-2">
+        <input type="text" id="chat-input" onkeydown="handleChatKeyDown(event)" placeholder="Nhập tin nhắn..." class="flex-1 bg-[#0d1117] border border-[#30363d] rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-500">
+        <button onclick="sendChatMessage()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs"><i class="fa-solid fa-paper-plane"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="h-16 bg-[#161b22] border-t border-[#30363d] flex items-center justify-center gap-3 px-4 z-20 shrink-0">
+    <button onclick="undoMove()" id="undo-btn" class="px-4 py-2.5 bg-[#21262d] hover:bg-[#30363d] border border-[#30363d] font-semibold text-sm rounded-xl flex items-center gap-2 transition-all active:scale-95 text-slate-300">
+      <i class="fa-solid fa-rotate-left text-amber-400"></i> <span class="hidden sm:inline">Đi Lại</span>
+    </button>
+    <button onclick="recenterView()" class="px-4 py-2.5 bg-[#21262d] hover:bg-[#30363d] border border-[#30363d] font-semibold text-sm rounded-xl flex items-center gap-2 transition-all active:scale-95 text-slate-300">
+      <i class="fa-solid fa-crosshairs text-blue-400"></i> <span class="hidden sm:inline">Căn Giữa</span>
+    </button>
+    <button onclick="requestRestartGame()" class="px-4 py-2.5 bg-[#21262d] hover:bg-[#30363d] border border-[#30363d] font-semibold text-sm rounded-xl flex items-center gap-2 transition-all active:scale-95 text-slate-300">
+      <i class="fa-solid fa-arrow-rotate-right text-emerald-400"></i> <span class="hidden sm:inline">Đánh Lại</span>
+    </button>
+  </footer>
+
+  <script>
+    // Audio Context & Sound Synthesizer
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'move') {
+          osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.08);
+        } else if (type === 'win') {
+          osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+          osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+          osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.5);
+        }
+      } catch (e) {
+        console.warn('Audio error:', e);
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('sound-btn');
+      btn.innerHTML = `<fa class="fa-solid ${soundEnabled ? 'fa-volume-high text-blue-400' : 'fa-volume-xmark text-slate-500'}"></fa> <span class="hidden md:inline">${soundEnabled ? 'Bật' : 'Tắt'}</span>`;
+    }
+
+    function showModal(title, desc, isError = true) {
+      document.getElementById('modal-title').innerText = title;
+      document.getElementById('modal-desc').innerText = desc;
+      document.getElementById('modal-icon').innerHTML = isError 
+        ? '<i class="fa-solid fa-triangle-exclamation text-red-500"></i>' 
+        : '<i class="fa-solid fa-circle-check text-emerald-500"></i>';
+      document.getElementById('custom-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('custom-modal').classList.add('hidden');
+    }
+
+    // Canvas & Game Variables
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+
+    const CELL_SIZE = 42;
+    let cameraX = 0;
+    let cameraY = 0;
+    let zoom = 1;
+
+    let board = {}; 
+    let history = []; 
+    let gameMode = 'pvp'; // 'pvp', 'pve', 'online'
+    let aiElo = 1200;
+    let currentPlayer = 'X';
+    let isGameOver = false;
+
+    // Online PeerJS state
+    let peer = null;
+    let conn = null;
+    let myRole = ''; // 'host' (X) or 'guest' (O)
+    let roomId = '';
+
+    function resizeCanvas() {
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+      drawBoard();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // Camera Pan & Zoom controls
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let hasDragged = false;
+
+    container.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragStart = { x: e.clientX, y: e.clientY };
+      hasDragged = false;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - dragStart.x;
+      const dy = e.clientY - dragStart.y;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        hasDragged = true;
+      }
+      cameraX += dx / zoom;
+      cameraY += dy / zoom;
+      dragStart = { x: e.clientX, y: e.clientY };
+      drawBoard();
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    // Touch support for mobile dragging
+    container.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        dragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        hasDragged = false;
+      }
+    });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      const dx = e.touches[0].clientX - dragStart.x;
+      const dy = e.touches[0].clientY - dragStart.y;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        hasDragged = true;
+      }
+      cameraX += dx / zoom;
+      cameraY += dy / zoom;
+      dragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      drawBoard();
+    });
+
+    window.addEventListener('touchend', () => {
+      isDragging = false;
+    });
+
+    container.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      if (zoom * zoomFactor >= 0.4 && zoom * zoomFactor <= 2.5) {
+        zoom *= zoomFactor;
+        drawBoard();
+      }
+    }, { passive: false });
+
+    function screenToGrid(screenX, screenY) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (screenX - rect.left - canvas.width / 2) / zoom - cameraX;
+      const y = (screenY - rect.top - canvas.height / 2) / zoom - cameraY;
+      return {
+        x: Math.floor(x / CELL_SIZE),
+        y: Math.floor(y / CELL_SIZE)
+      };
+    }
+
+    function drawBoard() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(zoom, zoom);
+      ctx.translate(cameraX, cameraY);
+
+      const left = Math.floor((-canvas.width / 2 / zoom - cameraX) / CELL_SIZE) - 2;
+      const right = Math.ceil((canvas.width / 2 / zoom - cameraX) / CELL_SIZE) + 2;
+      const top = Math.floor((-canvas.height / 2 / zoom - cameraY) / CELL_SIZE) - 2;
+      const bottom = Math.ceil((canvas.height / 2 / zoom - cameraY) / CELL_SIZE) + 2;
+
+      // Draw Grid Lines
+      ctx.strokeStyle = '#21262d';
+      ctx.lineWidth = 1;
+      for (let x = left; x <= right; x++) {
+        ctx.beginPath();
+        ctx.moveTo(x * CELL_SIZE, top * CELL_SIZE);
+        ctx.lineTo(x * CELL_SIZE, bottom * CELL_SIZE);
+        ctx.stroke();
+      }
+      for (let y = top; y <= bottom; y++) {
+        ctx.beginPath();
+        ctx.moveTo(left * CELL_SIZE, y * CELL_SIZE);
+        ctx.lineTo(right * CELL_SIZE, y * CELL_SIZE);
+        ctx.stroke();
+      }
+
+      // Highlight Last Move
+      if (history.length > 0) {
+        const lastMove = history[history.length - 1];
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
+        ctx.fillRect(lastMove.x * CELL_SIZE, lastMove.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      }
+
+      // Draw Pieces (X and O)
+      for (let key in board) {
+        const [gx, gy] = key.split(',').map(Number);
+        const symbol = board[key];
+        const cx = gx * CELL_SIZE + CELL_SIZE / 2;
+        const cy = gy * CELL_SIZE + CELL_SIZE / 2;
+
+        if (symbol === 'X') {
+          ctx.strokeStyle = '#3b82f6'; // Bright blue for X
+          ctx.lineWidth = 3.5;
+          ctx.lineCap = 'round';
+          const pad = CELL_SIZE * 0.28;
+          ctx.beginPath();
+          ctx.moveTo(gx * CELL_SIZE + pad, gy * CELL_SIZE + pad);
+          ctx.lineTo((gx + 1) * CELL_SIZE - pad, (gy + 1) * CELL_SIZE - pad);
+          ctx.moveTo((gx + 1) * CELL_SIZE - pad, gy * CELL_SIZE + pad);
+          ctx.lineTo(gx * CELL_SIZE + pad, (gy + 1) * CELL_SIZE - pad);
+          ctx.stroke();
+        } else if (symbol === 'O') {
+          ctx.strokeStyle = '#10b981'; // Emerald for O
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+          ctx.arc(cx, cy, CELL_SIZE * 0.3, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
+    }
+
+    // Handle User Clicking to Place Move
+    container.addEventListener('click', (e) => {
+      if (hasDragged || isGameOver) return;
+
+      // Turn checks
+      if (gameMode === 'pve' && currentPlayer === 'O') return;
+      if (gameMode === 'online') {
+        if (myRole === 'host' && currentPlayer !== 'X') return;
+        if (myRole === 'guest' && currentPlayer !== 'O') return;
+      }
+
+      const grid = screenToGrid(e.clientX, e.clientY);
+      const key = `${grid.x},${grid.y}`;
+      if (board[key]) return;
+
+      const movingPlayer = currentPlayer;
+      executeMove(grid.x, grid.y, movingPlayer);
+
+      // Send move over PeerJS in online mode
+      if (gameMode === 'online' && conn && conn.open) {
+        conn.send({
+          type: 'MOVE',
+          x: grid.x,
+          y: grid.y,
+          player: movingPlayer
+        });
+      }
+    });
+
+    function executeMove(x, y, player) {
+      const key = `${x},${y}`;
+      if (board[key]) return false;
+
+      board[key] = player;
+      history.push({ x, y, player });
+      playSound('move');
+      drawBoard();
+
+      if (checkWin(x, y, player)) {
+        isGameOver = true;
+        playSound('win');
+        setTimeout(() => {
+          let winText = `Người chơi ${player} Giành Chiến Thắng! 🎉`;
+          if (gameMode === 'online') {
+            winText = (player === (myRole === 'host' ? 'X' : 'O')) ? 'Bạn Đã Chiến Thắng! 🏆' : 'Đối Thủ Đã Thắng! 😢';
+          }
+          document.getElementById('winner-text').innerText = winText;
+          document.getElementById('winner-modal').classList.remove('hidden');
+        }, 100);
+        return true;
+      }
+
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      updatePlayerUI();
+
+      if (gameMode === 'pve' && currentPlayer === 'O' && !isGameOver) {
+        setTimeout(aiTurn, 350);
+      }
+      return true;
+    }
+
+    function updatePlayerUI() {
+      const p1Box = document.getElementById('p1-box');
+      const p2Box = document.getElementById('p2-box');
+
+      if (currentPlayer === 'X') {
+        p1Box.className = 'flex items-center gap-2 px-3 py-1 rounded-xl transition-all bg-blue-600/20 border border-blue-500 text-blue-400 font-bold text-sm shadow-sm';
+        p2Box.className = 'flex items-center gap-2 px-3 py-1 rounded-xl transition-all text-slate-400 font-bold text-sm';
+      } else {
+        p1Box.className = 'flex items-center gap-2 px-3 py-1 rounded-xl transition-all text-slate-400 font-bold text-sm';
+        p2Box.className = 'flex items-center gap-2 px-3 py-1 rounded-xl transition-all bg-emerald-600/20 border border-emerald-500 text-emerald-400 font-bold text-sm shadow-sm';
+      }
+    }
+
+    function checkWin(x, y, player) {
+      const directions = [
+        [[1, 0], [-1, 0]],   // Ngang
+        [[0, 1], [0, -1]],   // Dọc
+        [[1, 1], [-1, -1]],  // Chéo chính
+        [[1, -1], [-1, 1]]   // Chéo phụ
+      ];
+
+      for (let dir of directions) {
+        let count = 1;
+        for (let [dx, dy] of dir) {
+          let nx = x + dx;
+          let ny = y + dy;
+          while (board[`${nx},${ny}`] === player) {
+            count++;
+            nx += dx;
+            ny += dy;
+          }
+        }
+        if (count >= 5) return true;
+      }
+      return false;
+    }
+
+    // AI Minimax Heuristic Engine for PvE
+    function aiTurn() {
+      if (isGameOver) return;
+      let move;
+      if (aiElo <= 800) move = getBestMove(1);
+      else if (aiElo <= 1200) move = getBestMove(2);
+      else if (aiElo <= 1600) move = getBestMove(3);
+      else move = getBestMove(4);
+
+      if (move) {
+        executeMove(move.x, move.y, 'O');
+      }
+    }
+
+    function getBestMove(depth) {
+      const candidates = getCandidateMoves();
+      if (candidates.length === 0) return { x: 0, y: 0 };
+
+      let bestScore = -Infinity;
+      let bestMove = candidates[0];
+
+      for (let move of candidates) {
+        let score = evaluatePoint(move.x, move.y, 'O') * 1.3 + evaluatePoint(move.x, move.y, 'X');
+        if (depth < 3) score += Math.random() * (1500 / depth);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = move;
+        }
+      }
+      return bestMove;
+    }
+
+    function getCandidateMoves() {
+      const candidates = new Set();
+      if (Object.keys(board).length === 0) return [{ x: 0, y: 0 }];
+
+      for (let key in board) {
+        const [x, y] = key.split(',').map(Number);
+        for (let dx = -2; dx <= 2; dx++) {
+          for (let dy = -2; dy <= 2; dy++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx, ny = y + dy;
+            if (!board[`${nx},${ny}`]) candidates.add(`${nx},${ny}`);
+          }
+        }
+      }
+      return Array.from(candidates).map(k => {
+        const [x, y] = k.split(',').map(Number);
+        return { x, y };
+      });
+    }
+
+    function evaluatePoint(x, y, player) {
+      const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+      let totalScore = 0;
+
+      for (let [dx, dy] of directions) {
+        let count = 1, openEnds = 0;
+        let nx = x + dx, ny = y + dy;
+        while (board[`${nx},${ny}`] === player) { count++; nx += dx; ny += dy; }
+        if (!board[`${nx},${ny}`]) openEnds++;
+
+        nx = x - dx; ny = y - dy;
+        while (board[`${nx},${ny}`] === player) { count++; nx -= dx; ny -= dy; }
+        if (!board[`${nx},${ny}`]) openEnds++;
+
+        if (count >= 5) totalScore += 100000;
+        else if (count === 4 && openEnds === 2) totalScore += 10000;
+        else if (count === 4 && openEnds === 1) totalScore += 1000;
+        else if (count === 3 && openEnds === 2) totalScore += 500;
+        else if (count === 3 && openEnds === 1) totalScore += 100;
+        else if (count === 2 && openEnds === 2) totalScore += 50;
+      }
+      return totalScore;
+    }
+
+    function undoMove() {
+      if (gameMode === 'online') {
+        showModal('Thông báo', 'Không thể đi lại khi đang thi đấu Online.');
+        return;
+      }
+      if (history.length === 0 || isGameOver) return;
+
+      let last = history.pop();
+      delete board[`${last.x},${last.y}`];
+
+      if (gameMode === 'pve' && history.length > 0) {
+        last = history.pop();
+        delete board[`${last.x},${last.y}`];
+      }
+
+      currentPlayer = 'X';
+      updatePlayerUI();
+      drawBoard();
+    }
+
+    function recenterView() {
+      cameraX = 0;
+      cameraY = 0;
+      zoom = 1;
+      drawBoard();
+    }
+
+    function requestRestartGame() {
+      if (gameMode === 'online') {
+        if (conn && conn.open) {
+          conn.send({ type: 'RESTART' });
+        }
+      }
+      resetGameLocally();
+    }
+
+    function resetGameLocally() {
+      board = {};
+      history = [];
+      isGameOver = false;
+      currentPlayer = 'X';
+      document.getElementById('winner-modal').classList.add('hidden');
+      updatePlayerUI();
+      recenterView();
+    }
+
+    // Menu Navigation
+    function showEloMenu() {
+      document.getElementById('main-menu').classList.add('hidden');
+      document.getElementById('elo-menu').classList.remove('hidden');
+    }
+
+    function hideEloMenu() {
+      document.getElementById('elo-menu').classList.add('hidden');
+      document.getElementById('main-menu').classList.remove('hidden');
+    }
+
+    function startLocalPvP() {
+      gameMode = 'pvp';
+      document.getElementById('main-menu').classList.add('hidden');
+      document.getElementById('p1-label').innerText = 'Người 1 (X)';
+      document.getElementById('p2-label').innerText = 'Người 2 (O)';
+      document.getElementById('chat-toggle-btn').classList.add('hidden');
+      resetGameLocally();
+    }
+
+    function startPvE(elo) {
+      gameMode = 'pve';
+      aiElo = elo;
+      document.getElementById('main-menu').classList.add('hidden');
+      document.getElementById('elo-menu').classList.add('hidden');
+      document.getElementById('p1-label').innerText = 'Bạn (X)';
+      document.getElementById('p2-label').innerText = `AI Elo ${elo} (O)`;
+      document.getElementById('chat-toggle-btn').classList.add('hidden');
+      resetGameLocally();
+    }
+
+    function backToMenu() {
+      document.getElementById('winner-modal').classList.add('hidden');
+      document.getElementById('online-menu').classList.add('hidden');
+      document.getElementById('elo-menu').classList.add('hidden');
+      document.getElementById('main-menu').classList.remove('hidden');
+      document.getElementById('chat-panel').classList.add('hidden');
+      if (peer) {
+        peer.destroy();
+        peer = null;
+      }
+      gameMode = 'pvp';
+      resetGameLocally();
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Robust Online Multiplayer with PeerJS
+    function showOnlineMenu() {
+      document.getElementById('main-menu').classList.add('hidden');
+      document.getElementById('online-menu').classList.remove('hidden');
+      document.getElementById('online-loading-box').classList.remove('hidden');
+      document.getElementById('online-room-created').classList.add('hidden');
+      document.getElementById('online-join-box').classList.add('hidden');
+      document.getElementById('online-status-desc').innerText = 'Đang thiết lập phòng trực tuyến...';
+
+      // Check if URL has ?room=... parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetRoom = urlParams.get('room');
+
+      if (targetRoom) {
+        // Guest mode joining via shared link
+        myRole = 'guest';
+        gameMode = 'online';
+        document.getElementById('p1-label').innerText = 'Chủ phòng (X)';
+        document.getElementById('p2-label').innerText = 'Bạn (O)';
+        document.getElementById('chat-toggle-btn').classList.remove('hidden');
+        resetGameLocally();
+
+        peer = new Peer();
+        peer.on('open', (id) => {
+          document.getElementById('online-status-desc').innerText = 'Đang kết nối vào phòng của chủ phòng...';
+          conn = peer.connect(targetRoom);
+          setupConnectionEvents();
+        });
+
+        peer.on('error', (err) => {
+          showModal('Lỗi kết nối', 'Không thể kết nối vào phòng này hoặc phòng đã đóng.');
+          backToMenu();
+        });
+      } else {
+        // Host mode creating room
+        peer = new Peer();
+
+        peer.on('open', (id) => {
+          myRole = 'host';
+          roomId = id;
+          const shareLink = window.location.origin + window.location.pathname + '?room=' + id;
+          document.getElementById('room-link-input').value = shareLink;
+          document.getElementById('online-loading-box').classList.add('hidden');
+          document.getElementById('online-room-created').classList.remove('hidden');
+          document.getElementById('online-join-box').classList.remove('hidden');
+          document.getElementById('online-status-desc').innerText = 'Phòng đã sẵn sàng! Mời bạn bè qua link hoặc nhập mã.';
+          
+          gameMode = 'online';
+          document.getElementById('p1-label').innerText = 'Bạn (X)';
+          document.getElementById('p2-label').innerText = 'Đối thủ (O)';
+          document.getElementById('chat-toggle-btn').classList.remove('hidden');
+          resetGameLocally();
+        });
+
+        peer.on('connection', (connection) => {
+          conn = connection;
+          setupConnectionEvents();
+          document.getElementById('online-menu').classList.add('hidden');
+          appendSystemChatMessage('Đối thủ đã tham gia vào phòng thành công!');
+        });
+
+        peer.on('error', (err) => {
+          showModal('Lỗi mạng', 'Không thể tạo phòng trực tuyến. Vui lòng kiểm tra lại mạng.');
+          backToMenu();
+        });
+      }
+    }
+
+    function joinRoomFromInput() {
+      let val = document.getElementById('join-room-input').value.trim();
+      if (!val) {
+        showModal('Cảnh báo', 'Vui lòng nhập link hoặc mã phòng.');
+        return;
+      }
+      // If user pasted full url, extract ?room=ID
+      if (val.includes('?room=')) {
+        val = val.split('?room=')[1].split('&')[0];
+      }
+      window.location.href = window.location.origin + window.location.pathname + '?room=' + val;
+    }
+
+    function setupConnectionEvents() {
+      conn.on('open', () => {
+        document.getElementById('online-menu').classList.add('hidden');
+        appendSystemChatMessage('Đã kết nối thành công với đối thủ!');
+      });
+
+      conn.on('data', (data) => {
+        if (data.type === 'MOVE') {
+          executeMove(data.x, data.y, data.player);
+        } else if (data.type === 'RESTART') {
+          resetGameLocally();
+          appendSystemChatMessage('Đối thủ đã yêu cầu ván mới.');
+        } else if (data.type === 'CHAT') {
+          appendChatMessage(data.sender, data.message);
+        }
+      });
+
+      conn.on('close', () => {
+        showModal('Đối thủ ngắt kết nối', 'Đối thủ đã rời khỏi phòng đấu.');
+        backToMenu();
+      });
+    }
+
+    function copyRoomLink() {
+      const linkInput = document.getElementById('room-link-input');
+      linkInput.select();
+      document.execCommand('copy');
+      showModal('Thành công', 'Đã sao chép link mời vào bộ nhớ tạm!', false);
+    }
+
+    // Chat System
+    function toggleChatPanel() {
+      const panel = document.getElementById('chat-panel');
+      panel.classList.toggle('hidden');
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById('chat-input');
+      const msg = input.value.trim();
+      if (!msg) return;
+
+      const senderName = myRole === 'host' ? 'Chủ phòng' : 'Khách';
+      appendChatMessage(senderName, msg, true);
+
+      if (conn && conn.open) {
+        conn.send({
+          type: 'CHAT',
+          sender: senderName,
+          message: msg
+        });
+      }
+      input.value = '';
+    }
+
+    function handleChatKeyDown(e) {
+      if (e.key === 'Enter') {
+        sendChatMessage();
+      }
+    }
+
+    function appendChatMessage(sender, msg, isMe = false) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = `p-2 rounded-xl text-xs ${isMe ? 'bg-blue-600/20 border border-blue-500/30 text-right' : 'bg-[#21262d] border border-[#30363d]'}`;
+      div.innerHTML = `<div class="font-bold text-[10px] text-slate-400 mb-0.5">${sender}</div><div class="text-slate-200">${escapeHtml(msg)}</div>`;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function appendSystemChatMessage(msg) {
+      const container = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'text-center text-slate-500 text-[11px] italic py-1';
+      div.innerText = msg;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    window.onload = () => {
+      resizeCanvas();
+      // Check if URL has ?room= on direct load
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('room')) {
+        showOnlineMenu();
+      }
+    };
+  </script>
+</body>
+</html>

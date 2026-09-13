@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cờ Caro Vô Hạn Online</title>
+  <!-- Thư viện PeerJS để kết nối P2P thời gian thực -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #1a1a2e;
+      color: #fff;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    .modal-card {
+      background: #16213e;
+      border: 2px solid #0f3460;
+      border-radius: 16px;
+      padding: 30px;
+      width: 400px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .modal-card h1, .modal-card h2 {
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      color: #e94560;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .btn {
+      width: 100%;
+      padding: 12px 20px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 8px;
+      background: #0f3460;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn:hover {
+      background: #e94560;
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background: #333;
+    }
+    .btn-secondary:hover {
+      background: #555;
+    }
+    .btn-success {
+      background: #2e7d32;
+    }
+    .btn-success:hover {
+      background: #388e3c;
+    }
+
+    /* Input & Link box */
+    .room-link-box {
+      background: #0f172a;
+      border: 1px dashed #e94560;
+      padding: 10px;
+      border-radius: 8px;
+      margin: 15px 0;
+      word-break: break-all;
+      font-size: 0.9rem;
+      color: #4ecc71;
+    }
+
+    /* Game Header */
+    header {
+      height: 60px;
+      background: #16213e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      border-bottom: 2px solid #0f3460;
+      z-index: 10;
+    }
+    .player-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+    .player-box {
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #0f3460;
+      transition: all 0.3s;
+    }
+    .player-box.active {
+      border: 2px solid #e94560;
+      box-shadow: 0 0 10px #e94560;
+    }
+
+    /* Game Canvas Container */
+    #canvas-container {
+      flex: 1;
+      position: relative;
+      cursor: grab;
+      background-color: #0f172a;
+    }
+    #canvas-container:active {
+      cursor: grabbing;
+    }
+    canvas {
+      display: block;
+    }
+
+    /* Game Footer Controls */
+    footer {
+      height: 60px;
+      background: #16213e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      border-top: 2px solid #0f3460;
+      z-index: 10;
+    }
+    .control-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      background: #0f3460;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .control-btn:hover {
+      background: #e94560;
+    }
+
+    /* Elo Selector Submenu */
+    .elo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .status-text {
+      margin: 10px 0;
+      color: #a0aec0;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="main-menu" class="modal-overlay">
+    <div class="modal-card">
+      <h1>Cờ Caro Vô Hạn</h1>
+      <button class="btn" onclick="showEloMenu()">🎮 CHƠI VỚI MÁY</button>
+      <button class="btn" onclick="startLocalPvP()">👥 2 NGƯỜI (MÁY NÀY)</button>
+      <button class="btn btn-success" onclick="startOnlineMenu()">⚔️ THÁCH ĐẤU ONLINE</button>
+    </div>
+  </div>
+
+  <div id="elo-menu" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <h2>CHỌN CẤP ĐỘ ELO</h2>
+      <div class="elo-list">
+        <button class="btn" onclick="startPvE(800)">🌱 Tập sự (Elo 800)</button>
+        <button class="btn" onclick="startPvE(1200)">🌿 Trung bình (Elo 1200)</button>
+        <button class="btn" onclick="startPvE(1600)">🔥 Thách đấu (Elo 1600)</button>
+        <button class="btn" onclick="startPvE(2000)">👑 Kiện tướng (Elo 2000)</button>
+      </div>
+      <button class="btn btn-secondary" onclick="hideEloMenu()" style="margin-top: 15px;">⬅ Quay lại</button>
+    </div>
+  </div>
+
+  <div id="online-menu" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <h2>PHÒNG THÁCH ĐẤU</h2>
+      <div id="online-loading" class="status-text">Đang khởi tạo kết nối phòng...</div>
+      <div id="online-room-controls" style="display: none;">
+        <p class="status-text">Gửi đường link này cho đối thủ của bạn:</p>
+        <div class="room-link-box" id="room-link-display">Đang tạo link...</div>
+        <button class="btn btn-success" onclick="copyRoomLink()">📋 Sao chép link thách đấu</button>
+      </div>
+      <button class="btn btn-secondary" onclick="backToMenu()" style="margin-top: 15px;">⬅ Quay lại Menu</button>
+    </div>
+  </div>
+
+  <div id="winner-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <h2 id="winner-text" style="margin-bottom: 20px; color: #4ecc71;"></h2>
+      <button class="btn" onclick="requestRestartGame()">🔄 Chơi lại</button>
+      <button class="btn btn-secondary" onclick="backToMenu()">🏠 Menu chính</button>
+    </div>
+  </div>
+
+  <header>
+    <button class="control-btn" onclick="backToMenu()">🏠 Menu</button>
+    <div class="player-info">
+      <div id="p1-box" class="player-box active">❌ Nước X</div>
+      <span>VS</span>
+      <div id="p2-box" class="player-box">⭕ Nước O</div>
+    </div>
+    <button class="control-btn" id="sound-btn" onclick="toggleSound()">🔊 Âm thanh: Bật</button>
+  </header>
+
+  <div id="canvas-container">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <footer>
+    <button class="control-btn" onclick="undoMove()">↩️ Đi lại</button>
+    <button class="control-btn" onclick="recenterView()">🔍 Căn giữa</button>
+    <button class="control-btn" onclick="requestRestartGame()">🔄 Đánh lại</button>
+  </footer>
+
+  <script>
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      initAudio();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'move') {
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.08);
+      } else if (type === 'win') {
+        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('sound-btn').innerText = `🔊 Âm thanh: ${soundEnabled ? 'Bật' : 'Tắt'}`;
+    }
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+
+    const CELL_SIZE = 40;
+    let cameraX = 0;
+    let cameraY = 0;
+    let zoom = 1;
+
+    let board = {}; 
+    let history = []; 
+    let gameMode = 'pvp'; // 'pvp', 'pve', 'online'
+    let aiElo = 800;
+    let currentPlayer = 'X';
+    let isGameOver = false;
+
+    // Biến điều khiển online
+    let peer = null;
+    let conn = null;
+    let myRole = ''; // 'host' (X) hoặc 'guest' (O)
+    let roomId = '';
+
+    function resizeCanvas() {
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+      drawBoard();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let hasDragged = false;
+
+    container.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragStart = { x: e.clientX, y: e.clientY };
+      hasDragged = false;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - dragStart.x;
+      const dy = e.clientY - dragStart.y;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        hasDragged = true;
+      }
+      cameraX += dx / zoom;
+      cameraY += dy / zoom;
+      dragStart = { x: e.clientX, y: e.clientY };
+      drawBoard();
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    container.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      if (zoom * zoomFactor >= 0.4 && zoom * zoomFactor <= 2.5) {
+        zoom *= zoomFactor;
+        drawBoard();
+      }
+    }, { passive: false });
+
+    function screenToGrid(screenX, screenY) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (screenX - rect.left - canvas.width / 2) / zoom - cameraX;
+      const y = (screenY - rect.top - canvas.height / 2) / zoom - cameraY;
+      return {
+        x: Math.floor(x / CELL_SIZE),
+        y: Math.floor(y / CELL_SIZE)
+      };
+    }
+
+    function drawBoard() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(zoom, zoom);
+      ctx.translate(cameraX, cameraY);
+
+      const left = Math.floor((-canvas.width / 2 / zoom - cameraX) / CELL_SIZE) - 2;
+      const right = Math.ceil((canvas.width / 2 / zoom - cameraX) / CELL_SIZE) + 2;
+      const top = Math.floor((-canvas.height / 2 / zoom - cameraY) / CELL_SIZE) - 2;
+      const bottom = Math.ceil((canvas.height / 2 / zoom - cameraY) / CELL_SIZE) + 2;
+
+      ctx.strokeStyle = '#2a3b5c';
+      ctx.lineWidth = 1;
+      for (let x = left; x <= right; x++) {
+        ctx.beginPath();
+        ctx.moveTo(x * CELL_SIZE, top * CELL_SIZE);
+        ctx.lineTo(x * CELL_SIZE, bottom * CELL_SIZE);
+        ctx.stroke();
+      }
+      for (let y = top; y <= bottom; y++) {
+        ctx.beginPath();
+        ctx.moveTo(left * CELL_SIZE, y * CELL_SIZE);
+        ctx.lineTo(right * CELL_SIZE, y * CELL_SIZE);
+        ctx.stroke();
+      }
+
+      if (history.length > 0) {
+        const lastMove = history[history.length - 1];
+        ctx.fillStyle = 'rgba(233, 69, 96, 0.25)';
+        ctx.fillRect(lastMove.x * CELL_SIZE, lastMove.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      }
+
+      for (let key in board) {
+        const [gx, gy] = key.split(',').map(Number);
+        const symbol = board[key];
+        const cx = gx * CELL_SIZE + CELL_SIZE / 2;
+        const cy = gy * CELL_SIZE + CELL_SIZE / 2;
+
+        if (symbol === 'X') {
+          ctx.strokeStyle = '#e94560';
+          ctx.lineWidth = 3;
+          const pad = CELL_SIZE * 0.25;
+          ctx.beginPath();
+          ctx.moveTo(gx * CELL_SIZE + pad, gy * CELL_SIZE + pad);
+          ctx.lineTo((gx + 1) * CELL_SIZE - pad, (gy + 1) * CELL_SIZE - pad);
+          ctx.moveTo((gx + 1) * CELL_SIZE - pad, gy * CELL_SIZE + pad);
+          ctx.lineTo(gx * CELL_SIZE + pad, (gy + 1) * CELL_SIZE - pad);
+          ctx.stroke();
+        } else if (symbol === 'O') {
+          ctx.strokeStyle = '#4ecc71';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(cx, cy, CELL_SIZE * 0.28, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      ctx.restore();
+    }
+
+    container.addEventListener('click', (e) => {
+      if (hasDragged || isGameOver) return;
+
+      if (gameMode === 'pve' && currentPlayer === 'O') return;
+      if (gameMode === 'online') {
+        if (myRole === 'host' && currentPlayer !== 'X') return;
+        if (myRole === 'guest' && currentPlayer !== 'O') return;
+      }
+
+      const grid = screenToGrid(e.clientX, e.clientY);
+      const key = `${grid.x},${grid.y}`;
+      if (board[key]) return;
+
+      // Lưu lại quân cờ định đánh trước khi thực hiện
+      const movingPlayer = currentPlayer;
+      
+      // Thực hiện nước đi cục bộ
+      executeMove(grid.x, grid.y, movingPlayer);
+
+      // Gửi gói tin sang đối thủ qua kết nối P2P PeerJS
+      if (gameMode === 'online' && conn && conn.open) {
+        conn.send({
+          type: 'MOVE',
+          x: grid.x,
+          y: grid.y,
+          player: movingPlayer
+        });
+      }
+    });
+
+    function executeMove(x, y, player) {
+      const key = `${x},${y}`;
+      if (board[key]) return false;
+
+      board[key] = player;
+      history.push({ x, y, player });
+      playSound('move');
+      drawBoard();
+
+      if (checkWin(x, y, player)) {
+        isGameOver = true;
+        playSound('win');
+        setTimeout(() => {
+          let winText = `Người chơi ${player} Giành Chiến Thắng! 🎉`;
+          if (gameMode === 'online') {
+            winText = (player === (myRole === 'host' ? 'X' : 'O')) ? 'Bạn Đã Chiến Thắng! 🏆' : 'Đối Thủ Đã Thắng! 😢';
+          }
+          document.getElementById('winner-text').innerText = winText;
+          document.getElementById('winner-modal').style.display = 'flex';
+        }, 100);
+        return true;
+      }
+
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      updatePlayerUI();
+
+      if (gameMode === 'pve' && currentPlayer === 'O' && !isGameOver) {
+        setTimeout(aiTurn, 300);
+      }
+      return true;
+    }
+
+    function updatePlayerUI() {
+      document.getElementById('p1-box').classList.toggle('active', currentPlayer === 'X');
+      document.getElementById('p2-box').classList.toggle('active', currentPlayer === 'O');
+    }
+
+    function checkWin(x, y, player) {
+      const directions = [
+        [[1, 0], [-1, 0]],   
+        [[0, 1], [0, -1]],   
+        [[1, 1], [-1, -1]],  
+        [[1, -1], [-1, 1]]   
+      ];
+
+      for (let dir of directions) {
+        let count = 1;
+        for (let [dx, dy] of dir) {
+          let nx = x + dx;
+          let ny = y + dy;
+          while (board[`${nx},${ny}`] === player) {
+            count++;
+            nx += dx;
+            ny += dy;
+          }
+        }
+        if (count >= 5) return true;
+      }
+      return false;
+    }
+
+    function aiTurn() {
+      if (isGameOver) return;
+      let move;
+      if (aiElo === 800) move = getBestMove(1);
+      else if (aiElo === 1200) move = getBestMove(2);
+      else if (aiElo === 1600) move = getBestMove(3);
+      else move = getBestMove(4);
+
+      if (move) {
+        executeMove(move.x, move.y, 'O');
+      }
+    }
+
+    function getBestMove(depth) {
+      const candidates = getCandidateMoves();
+      if (candidates.length === 0) return { x: 0, y: 0 };
+
+      let bestScore = -Infinity;
+      let bestMove = candidates[0];
+
+      for (let move of candidates) {
+        let score = evaluatePoint(move.x, move.y, 'O') * 1.2 + evaluatePoint(move.x, move.y, 'X');
+        if (depth < 3) score += Math.random() * (2000 / depth);
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = move;
+        }
+      }
+      return bestMove;
+    }
+
+    function getCandidateMoves() {
+      const candidates = new Set();
+      for (let key in board) {
+        const [x, y] = key.split(',').map(Number);
+        for (let dx = -2; dx <= 2; dx++) {
+          for (let dy = -2; dy <= 2; dy++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx, ny = y + dy;
+            if (!board[`${nx},${ny}`]) candidates.add(`${nx},${ny}`);
+          }
+        }
+      }
+      return Array.from(candidates).map(k => {
+        const [x, y] = k.split(',').map(Number);
+        return { x, y };
+      });
+    }
+
+    function evaluatePoint(x, y, player) {
+      const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+      let totalScore = 0;
+
+      for (let [dx, dy] of directions) {
+        let count = 1, openEnds = 0;
+        let nx = x + dx, ny = y + dy;
+        while (board[`${nx},${ny}`] === player) { count++; nx += dx; ny += dy; }
+        if (!board[`${nx},${ny}`]) openEnds++;
+
+        nx = x - dx; ny = y - dy;
+        while (board[`${nx},${ny}`] === player) { count++; nx -= dx; ny -= dy; }
+        if (!board[`${nx},${ny}`]) openEnds++;
+
+        if (count >= 5) totalScore += 100000;
+        else if (count === 4 && openEnds === 2) totalScore += 10000;
+        else if (count === 4 && openEnds === 1) totalScore += 1000;
+        else if (count === 3 && openEnds === 2) totalScore += 500;
+        else if (count === 3 && openEnds === 1) totalScore += 100;
+        else if (count === 2 && openEnds === 2) totalScore += 50;
+      }
+      return totalScore;
+    }
+
+    function undoMove() {
+      if (gameMode === 'online') return;
+      if (history.length === 0 || isGameOver) return;
+
+      let last = history.pop();
+      delete board[`${last.x},${last.y}`];
+
+      if (gameMode === 'pve' && history.length > 0) {
+        last = history.pop();
+        delete board[`${last.x},${last.y}`];
+      }
+
+      currentPlayer = 'X';
+      updatePlayerUI();
+      drawBoard();
+    }
+
+    function recenterView() {
+      cameraX = 0;
+      cameraY = 0;
+      zoom = 1;
+      drawBoard();
+    }
+
+    function requestRestartGame() {
+      if (gameMode === 'online') {
+        if (conn && conn.open) {
+          conn.send({ type: 'RESTART' });
+        }
+      }
+      resetGameLocally();
+    }
+
+    function resetGameLocally() {
+      board = {};
+      history = [];
+      isGameOver = false;
+      currentPlayer = 'X';
+      document.getElementById('winner-modal').style.display = 'none';
+      updatePlayerUI();
+      recenterView();
+    }
+
+    function showEloMenu() {
+      document.getElementById('main-menu').style.display = 'none';
+      document.getElementById('elo-menu').style.display = 'flex';
+    }
+
+    function hideEloMenu() {
+      document.getElementById('elo-menu').style.display = 'none';
+      document.getElementById('main-menu').style.display = 'flex';
+    }
+
+    function startLocalPvP() {
+      gameMode = 'pvp';
+      document.getElementById('main-menu').style.display = 'none';
+      document.getElementById('p2-box').innerText = '⭕ Nước O';
+      resetGameLocally();
+    }
+
+    function startPvE(elo) {
+      gameMode = 'pve';
+      aiElo = elo;
+      document.getElementById('main-menu').style.display = 'none';
+      document.getElementById('elo-menu').style.display = 'none';
+      document.getElementById('p2-box').innerText = `🤖 AI (${elo})`;
+      resetGameLocally();
+    }
+
+    function backToMenu() {
+      document.getElementById('winner-modal').style.display = 'none';
+      document.getElementById('online-menu').style.display = 'none';
+      document.getElementById('elo-menu').style.display = 'none';
+      document.getElementById('main-menu').style.display = 'flex';
+      if (peer) {
+        peer.destroy();
+        peer = null;
+      }
+      gameMode = 'pvp';
+      resetGameLocally();
+      // Xóa query param ?room trên URL nếu có
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    function startOnlineMenu() {
+      document.getElementById('main-menu').style.display = 'none';
+      document.getElementById('online-menu').style.display = 'flex';
+      document.getElementById('online-loading').style.display = 'block';
+      document.getElementById('online-loading').innerText = 'Đang khởi tạo kết nối phòng...';
+      document.getElementById('online-room-controls').style.display = 'none';
+
+      peer = new Peer();
+
+      peer.on('open', (id) => {
+        myRole = 'host';
+        roomId = id;
+        const shareLink = window.location.origin + window.location.pathname + '?room=' + id;
+        document.getElementById('room-link-display').innerText = shareLink;
+        document.getElementById('online-loading').style.display = 'none';
+        document.getElementById('online-room-controls').style.display = 'block';
+        
+        gameMode = 'online';
+        document.getElementById('p2-box').innerText = '⭕ Đối thủ (Online)';
+        resetGameLocally();
+      });
+
+      peer.on('connection', (connection) => {
+        conn = connection;
+        setupConnectionEvents();
+        document.getElementById('online-menu').style.display = 'none';
+      });
+
+      peer.on('error', (err) => {
+        document.getElementById('online-loading').innerText = 'Lỗi kết nối mạng! Vui lòng thử lại.';
+      });
+    }
+
+    function setupConnectionEvents() {
+      conn.on('open', () => {
+        document.getElementById('online-menu').style.display = 'none';
+      });
+
+      conn.on('data', (data) => {
+        if (data.type === 'MOVE') {
+          // Nhận nước đi từ đối thủ và thực thi trên bàn cờ của mình
+          executeMove(data.x, data.y, data.player);
+        } else if (data.type === 'RESTART') {
+          resetGameLocally();
+        }
+      });
+
+      conn.on('close', () => {
+        alert('Đối thủ đã rời phòng!');
+        backToMenu();
+      });
+    }
+
+    function copyRoomLink() {
+      const linkText = document.getElementById('room-link-display').innerText;
+      const textArea = document.createElement("textarea");
+      textArea.value = linkText;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        alert('Đã sao chép link thách đấu vào bộ nhớ tạm!');
+      } catch (err) {
+        alert('Không thể tự động copy, vui lòng copy thủ công.');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    window.addEventListener('load', () => {
+      resizeCanvas();
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetRoom = urlParams.get('room');
+
+      if (targetRoom) {
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('online-menu').style.display = 'flex';
+        document.getElementById('online-loading').style.display = 'block';
+        document.getElementById('online-loading').innerText = 'Đang kết nối vào trận đấu của bạn bè...';
+
+        myRole = 'guest';
+        gameMode = 'online';
+        document.getElementById('p2-box').innerText = '⭕ Đối thủ (Online)';
+        resetGameLocally();
+
+        peer = new Peer();
+        peer.on('open', (id) => {
+          conn = peer.connect(targetRoom);
+          setupConnectionEvents();
+        });
+
+        peer.on('error', (err) => {
+          document.getElementById('online-loading').innerText = 'Không thể kết nối vào phòng này hoặc phòng đã đóng!';
+        });
+      }
+    });
+  </script>
+</body>
+</html>
